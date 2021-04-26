@@ -1,4 +1,4 @@
-#include <linux/bpf.h>
+//#include <linux/bpf.h>
 #include <linux/if_link.h>
 #include <assert.h>
 #include <errno.h>
@@ -11,9 +11,7 @@
 #include <netinet/ether.h>
 #include <unistd.h>
 #include <time.h>
-//#include "bpf_load.h"
 #include <bpf.h>
-//#include "bpf_util.h"
 #include <libbpf.h>
 static int ifindex = 1; // localhost interface ifindex
 static __u32 xdp_flags = 0;
@@ -30,7 +28,7 @@ static void int_exit(int sig) {
 // ./ip_u -i <ip>
 int main(int argc, char **argv) {
   const char *optstr = "i:";
-  char *filename="ip.o";
+  char *filename="ip-kern.o";
   char *ip_param = "127.0.0.1";
   int opt;
   int prog_fd,map_fd;

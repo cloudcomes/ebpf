@@ -31,30 +31,16 @@ make ip-kern.o
 
 ```
 
-### Loading of XDP BPF object files
+###  Run ip-user
 
 ```
-$ ip link set dev enp0s3 xdp obj hello.o
+$ ip-user -i 192.168.1.100 
 ```
 
-### Test with traffic
+### send some ICMP packets to localhost 
+send some ICMP packets to localhost with the IP 192.168.1.100
 
 ```
-$ arp -n
-Address                  HWtype  HWaddress           Flags Mask            Iface
-192.168.56.1             ether   0a:00:27:00:00:00   C                     enp0s8
-10.0.2.2                         (incomplete)                              enp0s3
-
-```
-### Remove the existing XDP program from the interface
-
-```
-$ ip link set dev enp0s3 xdp off
+$ python3 test.py
 ```
 
-### Test with traffic and unload
-```
-arp -n
-Address                  HWtype  HWaddress           Flags Mask            Iface
-192.168.56.1             ether   0a:00:27:00:00:00   C                     enp0s8
-10.0.2.2                 ether   52:54:00:12:35:02   C                     enp0s3
