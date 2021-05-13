@@ -1,6 +1,6 @@
 # Common Makefile parts for BPF-building with libbpf
 
-KERN_TARGETS := test_tc_edt
+KERN_TARGETS := test_tc_neigh_fib
 #USER_TARGETS := sockex1_user
 
 LLC ?= llc
@@ -21,11 +21,12 @@ OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 #CFLAGS += -I../headers/
 CFLAGS += -I../libbpf/src
 LDFLAGS ?= -L$(LIBBPF_DIR)/
-
+CFLAGS += -g -D__TARGET_ARCH_x86 -mlittle-endian  -Wno-compare-distinct-pointer-types -O2 
+CFLAGS += -Wno-unused-command-line-argument -mcpu=v3
 #BPF_CFLAGS ?= -I$(LIBBPF_DIR)/build/usr/include/ -I../libbpf/src
 BPF_CFLAGS ?= -I../libbpf/src
 
-LIBS = -l:libbpf.a -lelf -lz $(USER_LIBS)
+LIBS = -l:libbpf.a -lelf -lz -lcap -lrt -lpthread $(USER_LIBS)
 
 all: llvm-check $(KERN_OBJ) $(USER_TARGETS)
 
@@ -62,13 +63,7 @@ llvm-check: $(CLANG) $(LLC)
 $(KERN_OBJ): %.o: %.c  
 	$(CLANG) -S \
 	    -target bpf \
-	    -D __BPF_TRACING__ \
 	    $(BPF_CFLAGS) \
-	    -Wall \
-	    -Wno-unused-value \
-	    -Wno-pointer-sign \
-	    -Wno-compare-distinct-pointer-types \
-	    -Werror \
-	    -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	    -emit-llvm -c -g -o ${@:.o=.ll} $<
 	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
 
