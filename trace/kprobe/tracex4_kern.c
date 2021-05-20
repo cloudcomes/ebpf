@@ -6,13 +6,13 @@
  */
 #include <linux/ptrace.h>
 #include <linux/version.h>
-#include <uapi/linux/bpf.h>
-#include <bpf/bpf_helpers.h>
-#include <bpf/bpf_tracing.h>
+#include <linux/bpf.h>
+#include <bpf_helpers.h>
+#include <bpf_tracing.h>
 
 struct pair {
-	u64 val;
-	u64 ip;
+	__u64 val;
+	__u64 ip;
 };
 
 struct {
@@ -52,4 +52,4 @@ int bpf_prog2(struct pt_regs *ctx)
 	return 0;
 }
 char _license[] SEC("license") = "GPL";
-u32 _version SEC("version") = LINUX_VERSION_CODE;
+__u32 _version SEC("version") = LINUX_VERSION_CODE;

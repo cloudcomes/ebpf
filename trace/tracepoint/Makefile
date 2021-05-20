@@ -1,7 +1,7 @@
 # Common Makefile parts for BPF-building with libbpf
 
-KERN_TARGETS := tracex4_kern
-USER_TARGETS := tracex4_user
+KERN_TARGETS := syscall_tp_kern
+USER_TARGETS := syscall_tp_user
 
 LLC ?= llc
 CLANG ?= clang
@@ -45,7 +45,7 @@ clean:
 	$(MAKE) -C $(LIBBPF_DIR) clean
 	rm -f *.ll
 	rm -f *.o
-	rm -f tracex4
+	rm -f syscall_tp
 
 llvm-check: $(CLANG) $(LLC)
 	@for TOOL in $^ ; do \
@@ -69,12 +69,12 @@ $(OBJECT_LIBBPF):
 $(USER_OBJ): 
 	$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_GCCFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-        -c -o ./tracex4_user.o ./tracex4_user.c
+        -c -o ./syscall_tp_user.o ./syscall_tp_user.c
 
 $(USER_TARGETS):
 	$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_GCCFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-	-o ./tracex4 ./tracex4_user.o ../libbpf/src/libbpf.a -lelf -lz
+	-o ./syscall_tp ./syscall_tp_user.o ../libbpf/src/libbpf.a -lelf -lz
 
 $(KERN_OBJ): %.o: %.c  $(OBJECT_LIBBPF)
 	$(CLANG) -S \
