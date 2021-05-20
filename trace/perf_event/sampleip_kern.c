@@ -6,25 +6,25 @@
  */
 #include <linux/version.h>
 #include <linux/ptrace.h>
-#include <linux/bpf.h>
-#include <linux/bpf_perf_event.h>
-#include <bpf_helpers.h>
-#include <bpf_tracing.h>
+#include <uapi/linux/bpf.h>
+#include <uapi/linux/bpf_perf_event.h>
+#include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
 
 #define MAX_IPS		8192
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__type(key, __u64);
-	__type(value, __u32);
+	__type(key, u64);
+	__type(value, u32);
 	__uint(max_entries, MAX_IPS);
 } ip_map SEC(".maps");
 
 SEC("perf_event")
 int do_sample(struct bpf_perf_event_data *ctx)
 {
-	__u64 ip;
-	__u32 *value, init_val = 1;
+	u64 ip;
+	u32 *value, init_val = 1;
 
 	ip = PT_REGS_IP(&ctx->regs);
 	value = bpf_map_lookup_elem(&ip_map, &ip);

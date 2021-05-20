@@ -33,21 +33,37 @@ BPF_GCCFLAGS += -I$(SRC_DIR)/tools/include/
 BPF_GCCFLAGS += -I$(SRC_DIR)/tools/perf/
 BPF_GCCFLAGS += -I../libbpf/src/
 
-BPF_CFLAGS ?= -I../libbpf/src/
+#BPF_CFLAGS ?= -I../libbpf/src/
+BPF_CFLAGS ?= -I$(SRC_DIR)/arch/x86/include
+BPF_CFLAGS += -I$(SRC_DIR)/arch/x86/include/generated
+BPF_CFLAGS += -I$(SRC_DIR)/include
+
+BPF_CFLAGS += -I$(SRC_DIR)/arch/x86/include/uapi/
+BPF_CFLAGS += -I$(SRC_DIR)/arch/x86/include/generated/uapi/
+BPF_CFLAGS += -I$(SRC_DIR)/include/uapi/
+BPF_CFLAGS += -I$(SRC_DIR)/include/generated/uapi/
+BPF_CFLAGS += -include $(SRC_DIR)/include/linux/kconfig.h
+BPF_CFLAGS += -Iubuntu/include
+
+BPF_CFLAGS += -I$(SRC_DIR)/tools/lib/
+
+
+BPF_CFLAGS += -I$(SRC_DIR)/samples/bpf
 
 LIBS = -l:libbpf.a -lelf -lz 
 
-all: llvm-check $(KERN_OBJ) $(TRACE_OBJ) $(USER_OBJ) $(USER_TARGETS)
+
+all: llvm-check $(OBJECT_LIBBPF) $(KERN_OBJ) $(TRACE_OBJ) $(USER_OBJ) $(USER_TARGETS)
 
 .PHONY: clean $(CLANG) $(LLC)
 
 clean:
 	rm -rf $(LIBBPF_DIR)/build
 	$(MAKE) -C $(LIBBPF_DIR) clean
-	$(MAKE) -C $(COMMON_DIR) clean
 	rm -f $(USER_TARGETS) $(KERN_OBJ) $(USER_OBJ)
 	rm -f *.ll
-	rm -f *~
+	rm -f *.o
+	rm -f sampleip
 
 llvm-check: $(CLANG) $(LLC)
 	@for TOOL in $^ ; do \
@@ -82,17 +98,19 @@ $(USER_TARGETS):
         -DHAVE_ATTR_TEST=0 \
 	-o ./sampleip ./sampleip_user.o ./trace_helpers.o ../libbpf/src/libbpf.a -lelf -lz
 
-$(KERN_OBJ): %.o: %.c  $(OBJECT_LIBBPF)
-	$(CLANG) -S \
-        -target bpf \
-            -D __BPF_TRACING__ \
-            $(BPF_CFLAGS) \
-            -Wall \
-            -Wno-unused-value \
-            -Wno-pointer-sign \
-            -Wno-compare-distinct-pointer-types \
-            -Werror \
-            -D__TARGET_ARCH_x86 \
-            -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
-	$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+$(KERN_OBJ): 
+	$(CLANG)  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/10/include \
+	$(BPF_CFLAGS) \
+	-fno-stack-protector \
+       	-g \
+	-D__KERNEL__ -D__BPF_TRACING__ -Wno-unused-value -Wno-pointer-sign \
+	-D__TARGET_ARCH_x86 -Wno-compare-distinct-pointer-types \
+	-Wno-gnu-variable-sized-type-not-at-end \
+	-Wno-address-of-packed-member -Wno-tautological-compare \
+	-Wno-unknown-warning-option  \
+	-O2 -emit-llvm -Xclang -disable-llvm-passes -c ./sampleip_kern.c -o - | \
+	opt -O2 -mtriple=bpf-pc-linux | llvm-dis | \
+	llc -march=bpf  -filetype=obj -o ./sampleip_kern.o	
+
+
 
