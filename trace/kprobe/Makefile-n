@@ -1,8 +1,7 @@
 # Common Makefile parts for BPF-building with libbpf
 
-KERN_TARGETS := sampleip_kern
-USER_TARGETS := sampleip_user
-TRACE_OBJ := trace_helpers
+KERN_TARGETS := tracex4_kern
+USER_TARGETS := tracex4_user
 
 LLC ?= llc
 CLANG ?= clang
@@ -14,8 +13,6 @@ KERN_OBJ = ${KERN_C:.c=.o}
 USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
-TRACE_C := ${TRACE_OBJ:=.c}
-TRACE_OBJ := ${TRACE_C:.c=.o}
 
 #Linux source code folder
 SRC_DIR ?= /usr/src/linux-source-5.11.0/linux-source-5.11.0
@@ -53,7 +50,7 @@ BPF_CFLAGS += -I$(SRC_DIR)/tools/lib/
 LIBS = -l:libbpf.a -lelf -lz 
 
 
-all: llvm-check $(OBJECT_LIBBPF) $(KERN_OBJ) $(TRACE_OBJ) $(USER_OBJ) $(USER_TARGETS)
+all: llvm-check $(OBJECT_LIBBPF) $(KERN_OBJ) $(USER_OBJ) $(USER_TARGETS)
 
 .PHONY: clean $(CLANG) $(LLC)
 
@@ -83,20 +80,16 @@ $(OBJECT_LIBBPF):
           mkdir -p build; $(MAKE) install_headers DESTDIR=build OBJDIR=.; \
         fi
 
-$(TRACE_OBJ): 
-	$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_GCCFLAGS)  \
-        -DHAVE_ATTR_TEST=0 \
-         -c -o ./trace_helpers.o $(SRC_DIR)/tools/testing/selftests/bpf/trace_helpers.c;
 
 $(USER_OBJ): 
 	$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_GCCFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-        -c -o ./sampleip_user.o ./sampleip_user.c
+        -c -o ./tracex4_user.o ./tracex4_user.c
 
 $(USER_TARGETS):
 	$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_GCCFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-	-o ./sampleip ./sampleip_user.o ./trace_helpers.o ../libbpf/src/libbpf.a -lelf -lz
+	-o ./tracex4 ./tracex4_user.o ../libbpf/src/libbpf.a -lelf -lz
 
 $(KERN_OBJ): 
 	$(CLANG)  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/10/include \
@@ -108,9 +101,9 @@ $(KERN_OBJ):
 	-Wno-gnu-variable-sized-type-not-at-end \
 	-Wno-address-of-packed-member -Wno-tautological-compare \
 	-Wno-unknown-warning-option  \
-	-O2 -emit-llvm -Xclang -disable-llvm-passes -c ./sampleip_kern.c -o - | \
+	-O2 -emit-llvm -Xclang -disable-llvm-passes -c ./tracex4_kern.c -o - | \
 	opt -O2 -mtriple=bpf-pc-linux | llvm-dis | \
-	llc -march=bpf  -filetype=obj -o ./sampleip_kern.o	
+	llc -march=bpf  -filetype=obj -o ./tracex4_kern.o	
 
 
 

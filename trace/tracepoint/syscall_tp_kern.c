@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2017 Facebook
  */
-#include <linux/bpf.h>
-#include <bpf_helpers.h>
+#include <uapi/linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+
 struct syscalls_enter_open_args {
 	unsigned long long unused;
 	long syscall_nr;
@@ -19,22 +20,22 @@ struct syscalls_exit_open_args {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__type(key, __u32);
-	__type(value, __u32);
+	__type(key, u32);
+	__type(value, u32);
 	__uint(max_entries, 1);
 } enter_open_map SEC(".maps");
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__type(key, __u32);
-	__type(value, __u32);
+	__type(key, u32);
+	__type(value, u32);
 	__uint(max_entries, 1);
 } exit_open_map SEC(".maps");
 
 static __always_inline void count(void *map)
 {
-	__u32 key = 0;
-	__u32 *value, init_val = 1;
+	u32 key = 0;
+	u32 *value, init_val = 1;
 
 	value = bpf_map_lookup_elem(map, &key);
 	if (value)
