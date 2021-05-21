@@ -49,6 +49,7 @@ int bpf_prog2(struct pt_regs *ctx)
 	};
 
 	bpf_map_update_elem(&my_map, &ptr, &v, BPF_ANY);
+	bpf_printk("KPROBE ENTRY ip = %x ", ip);
 	return 0;
 }
 char _license[] SEC("license") = "GPL";
