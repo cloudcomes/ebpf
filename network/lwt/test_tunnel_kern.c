@@ -18,8 +18,8 @@
 #include <linux/socket.h>
 #include <linux/pkt_cls.h>
 #include <linux/erspan.h>
-#include <bpf/bpf_helpers.h>
-#include <bpf/bpf_endian.h>
+#include <bpf_helpers.h>
+#include <bpf_endian.h>
 
 #define ERROR(ret) do {\
 		char fmt[] = "ERROR line:%d ret:%d\n";\
@@ -174,7 +174,7 @@ int _erspan_get_tunnel(struct __sk_buff *skb)
 	char fmt[] = "key %d remote ip 0x%x erspan version %d\n";
 	struct bpf_tunnel_key key;
 	struct erspan_metadata md;
-	__u32 index;
+//	__u32 index;
 	int ret;
 
 	ret = bpf_skb_get_tunnel_key(skb, &key, sizeof(key), 0);
@@ -259,7 +259,7 @@ int _ip4ip6erspan_get_tunnel(struct __sk_buff *skb)
 	char fmt[] = "ip6erspan get key %d remote ip6 ::%x erspan version %d\n";
 	struct bpf_tunnel_key key;
 	struct erspan_metadata md;
-	__u32 index;
+//	__u32 index;
 	int ret;
 
 	ret = bpf_skb_get_tunnel_key(skb, &key, sizeof(key),
@@ -396,7 +396,8 @@ int _ip6vxlan_get_tunnel(struct __sk_buff *skb)
 SEC("geneve_set_tunnel")
 int _geneve_set_tunnel(struct __sk_buff *skb)
 {
-	int ret, ret2;
+	//int ret, ret2;
+	int ret;
 	struct bpf_tunnel_key key;
 	struct geneve_opt gopt;
 
