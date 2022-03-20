@@ -1,0 +1,95 @@
+README
+======
+
+## 1: 编写ebpf代码
+The following C program uses the xdp_drop command to drop all data packets.
+
+```
+#include <linux/bpf.h>
+
+#define SEC(NAME) __attribute__((section(NAME), used))
+
+SEC("xdp_dummy")
+int xdp_prog(struct xdp_md *ctx)
+{
+	return XDP_PASS;
+}
+
+char _license[] SEC("license") = "GPL";
+```
+
+## 2: 通过bpftool 生成 vmlinux.h
+`bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@`
+
+## 2: 编译ebpf程序
+### 2.1 构建libbpf静态库 Build libbpf
+
+```
+cd /home/cloudcome/linux/linux-master/tools/lib/bpf
+make
+make install
+`````
+install之后，libbpf的下列文件会安装中系统：
+>   INSTALL libbpf.a
+>   INSTALL libbpf.so.0.7.0
+>   INSTALL libbpf.pc
+>   INSTALL /usr/local/include/bpf/bpf.h
+>   INSTALL /usr/local/include/bpf/libbpf.h
+>   INSTALL /usr/local/include/bpf/btf.h
+>   INSTALL /usr/local/include/bpf/libbpf_common.h
+>   INSTALL /usr/local/include/bpf/libbpf_legacy.h
+>   INSTALL /usr/local/include/bpf/xsk.h
+>   INSTALL /usr/local/include/bpf/bpf_helpers.h
+>   INSTALL /usr/local/include/bpf/bpf_tracing.h
+>   INSTALL /usr/local/include/bpf/bpf_endian.h
+>   INSTALL /usr/local/include/bpf/bpf_core_read.h
+>   INSTALL /usr/local/include/bpf/skel_internal.h
+>   INSTALL /usr/local/include/bpf/libbpf_version.h
+>   INSTALL /usr/local/include/bpf/bpf_helper_defs.h
+
+
+### 2.2 构建ebpf代码 Build BPF code
+
+```
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I.output -I/usr/local/include/bpf/ -I./ -c xdp.bpf.c -o .output/xdp.bpf.o
+```
+
+### 2.3 生成BPF skeleton头 Generate BPF 
+通过 bpftool 工具生成相关的脚手架代码；通过将编译后的BPF目标代码的内容嵌入skeleton头文件中来简化BPF 代码部署逻辑，skeleton头文件包含在用户空间代码中。
+已经.bpf.o生成了文件，bpftool用于生成相应的 BPF skeleton头 ( .skel.h) 
+
+`bpftool gen skeleton .output/xdp.bpf.o > .output/xdp.skel.h`
+
+### 2.4 生成用户空间代码的目标文件 Build user-space code
+用户空间的 C 代码，它在应用程序的整个生命周期中加载 BPF 代码并与之交互；
+
+`cc -g -Wall -I.output -I/usr/local/include/bpf/ -I./ -c xdp.c -o .output/xdp.o
+`
+### 2.5 生成最终的可运行的二进制文件
+  使用用户空间.o文件（与libbpf.a静态库一起）生成最终的二进制文件。-lelf并且-lz是 libbpf 的依赖项，需要明确提供给编译器
+
+`cc -g -Wall .output/xdp.o libbpf.a -lelf -lz -o xdp`
+
+把前面生成的libbpf.a copy到当前目录下
+
+使用llvm-objdump命令查看编译生成的elf文件内容
+`# llvm-objdump -h xdp.o
+`
+
+ 
+## 3: 加载ebpf程序到内核
+
+可以用iproute2工具加载ebpf程序，在这里不用libbpf库；
+./xdp eth0 a
+
+## 4: 查看运行的ebpf程序的状态
+`# bpftool show prog`
+
+ 
+## 5: 卸载ebpf程序
+
+./xdp eth0 d
+
+
+
+
