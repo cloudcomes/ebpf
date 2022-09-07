@@ -1,0 +1,69 @@
+ifeq ($(V),1)
+	Q =
+	msg =
+else
+	Q = @
+	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
+endif
+
+USER_TARGETS := btf
+
+CC ?= gcc
+
+USER_C := ${USER_TARGETS:=.c}
+USER_OBJ := ${USER_C:.c=.o}
+
+LIBBPF_DIR ?= /home/cloudcome/libbpf/src
+OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
+
+
+BPF_CFLAGS ?= -I/home/cloudcome/libbpf/src/
+BPF_CFLAGS += -I/usr/include/
+
+BPF_CFLAGS += -I/home/cloudcome/libbpf/include/
+BPF_CFLAGS += -I/home/cloudcome/linux/linux-master/tools/bpf/bpftool/libbpf/include/
+BPF_CFLAGS += -I/home/cloudcome/libbpf/src/build/usr/include/
+LIBS = /home/cloudcome/libbpf/src/libbpf.a 
+
+all: llvm-check $(USER_OBJ) $(USER_TARGETS)
+
+.PHONY: clean $(CLANG) $(LLC)
+
+clean:
+	$(call msg,rm,$@)
+	#rm -rf $(LIBBPF_DIR)/build
+	#$(MAKE) -C $(LIBBPF_DIR) clean
+	rm -f *.ll
+	rm -f *.o
+	rm -f syscall
+
+llvm-check: $(CLANG) $(LLC)
+	$(call msg,CHECK,$@)
+	@for TOOL in $^ ; do \
+           if [ ! $$(command -v $${TOOL} 2>/dev/null) ]; then \
+              echo "*** ERROR: Cannot find tool $${TOOL}" ;\
+              exit 1; \
+           else true; fi; \
+        done
+
+$(OBJECT_LIBBPF):
+	@if [ ! -d $(LIBBPF_DIR) ]; then \
+	  echo "Error: Need libbpf submodule"; \
+	  echo "May need to run git submodule update --init"; \
+	  exit 1; \
+	else \
+          cd $(LIBBPF_DIR) && $(MAKE) all OBJDIR=.; \
+          #mkdir -p build; $(MAKE) install_headers DESTDIR=build OBJDIR=.; \
+        fi
+
+$(USER_OBJ): 
+	$(call msg,CC,$@)
+	$(Q)$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
+        -DHAVE_ATTR_TEST=0 \
+        -c -o ./btf.o ./btf.c
+
+$(USER_TARGETS):
+	$(call msg,CC,$@)
+	$(Q)$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
+        -DHAVE_ATTR_TEST=0 \
+	-o ./btf ./btf.o $(LIBS) -lelf -lz

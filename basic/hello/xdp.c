@@ -1,6 +1,5 @@
 #include <linux/bpf.h>
 #include <bpf_helpers.h>
-
 static int foo(void)
 {
     return XDP_DROP;
