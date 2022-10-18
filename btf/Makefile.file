@@ -6,7 +6,7 @@ else
 	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
 endif
 
-USER_TARGETS := btf_app
+USER_TARGETS := btf_file
 
 CC ?= gcc
 
@@ -19,7 +19,7 @@ OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
 BPF_CFLAGS ?= -I/root/cloud/libbpf/src/
 
-#BPF_CFLAGS += -I/root/cloud/libbpf/include/uapi/
+BPF_CFLAGS += -I/root/cloud/libbpf/include/uapi/
 BPF_CFLAGS += -I/root/cloud/libbpf/include/
 
 
@@ -32,11 +32,9 @@ all: llvm-check $(USER_OBJ) $(USER_TARGETS)
 
 clean:
 	$(call msg,rm,$@)
-	#rm -rf $(LIBBPF_DIR)/build
-	#$(MAKE) -C $(LIBBPF_DIR) clean
 	rm -f *.ll
 	rm -f *.o
-	rm -f btf_app
+	rm -f btf_file
 
 llvm-check: $(CLANG) $(LLC)
 	$(call msg,CHECK,$@)
@@ -61,10 +59,10 @@ $(USER_OBJ):
 	$(call msg,CC,$@)
 	$(Q)$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes  $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-        -c -g -o ./btf_api.o ./btf_api.c
+        -c -g -o ./btf_file.o ./btf_file.c
 
 $(USER_TARGETS):
 	$(call msg,CC,$@)
 	$(Q)$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-	-o ./btf_api ./btf_api.o $(LIBS) -lelf -lz
+	-o ./btf_file ./btf_file.o $(LIBS) -lelf -lz

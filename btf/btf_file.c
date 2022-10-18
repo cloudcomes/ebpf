@@ -1,24 +1,27 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright (c) 2018 Facebook */
+/* Copyright (c) 2022 Cloudcome */
 
 #include <linux/err.h>
 #include <linux/kernel.h>
 #include <stdlib.h>
-#include <bpf/libbpf.h>
+#include <libbpf.h>
+#include <bpf.h>
 
 #include <uapi/linux/btf.h>
 #include <btf.h>
-
-#include "test_progs.h"
 
 
 struct btf_file_test {
 	const char *file;
 };
 
+static inline __u64 ptr_to_u64(const void *ptr)
+{
+	return (__u64) (unsigned long) ptr;
+}
 
 static struct btf_file_test file_tests[] = {
-	{ .file = "/root/ebpf/btf/xdp.oo"},
+	{ .file = "/root/cloud/ebpf/btf/xdp.oo"},
 };
 
 static void do_test_file(unsigned int test_num)
@@ -26,19 +29,21 @@ static void do_test_file(unsigned int test_num)
 	const struct btf_file_test *test = &file_tests[test_num - 1];
 
 	struct btf_ext *btf_ext = NULL;
-	struct bpf_prog_info info = {};
-	struct bpf_object *obj = NULL;
-	struct bpf_func_info *finfo;
+   	struct bpf_object *obj = NULL;
 	struct bpf_program *prog;
-	__u32 info_len, rec_size;
+
+    struct bpf_prog_info info = {};
+    struct bpf_func_info *finfo;
+	struct bpf_line_info *linfo;
+	
+	__u32 info_len, rec_size,line_rec_size;
 	bool has_btf_ext = false;
 	struct btf *btf = NULL;
 	void *func_info = NULL;
+	void *line_info = NULL;
 	int err, prog_fd;
 
-   
-	btf = btf__parse_elf(test->file, &btf_ext);
-	
+   	btf = btf__parse_elf(test->file, &btf_ext);
 	err = libbpf_get_error(btf);
 	if (err) {
 		if (err == -ENOENT) {
@@ -49,32 +54,33 @@ static void do_test_file(unsigned int test_num)
 	}
 	
 	btf__free(btf);
-   
-	has_btf_ext = btf_ext != NULL;
+   	has_btf_ext = btf_ext != NULL;
 	btf_ext__free(btf_ext);
-   
-   
-	obj = bpf_object__open(test->file);
-
-	prog = bpf_object__next_program(obj, NULL);
-
-	bpf_program__set_type(prog, BPF_PROG_TYPE_XDP);
-	bpf_object__load(obj);
-
-	prog_fd = bpf_program__fd(prog);
-
-
 	if (!has_btf_ext)
 		goto skip;
+   
+   	obj = bpf_object__open(test->file);
+	prog = bpf_object__find_program_by_name(obj, "xdp_drop");
+	bpf_program__set_type(prog, BPF_PROG_TYPE_XDP);
+
+	/* load BPF program */
+	bpf_object__load(obj);
+	prog_fd = bpf_program__fd(prog);
 
 	/* get necessary program info */
+	/*在 prog_load 过程中，func_info 和 line_info 可以被传递给 kernel*/
+	
+    printf("Print program info info \n"); 
 	info_len = sizeof(struct bpf_prog_info);
 	bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
-    printf("nr_func_info: %d\n", info.nr_func_info);
-
-	rec_size = info.func_info_rec_size;
-	printf("func_info_rec_size: %d\n", info.func_info_rec_size);
     
+    printf("nr_func_info: %d\n", info.nr_func_info);
+    printf("func_info_rec_size: %d\n", info.func_info_rec_size);
+    printf("nr_line_info: %d\n", info.nr_line_info);
+	printf("line_info_rec_size: %d\n\n", info.line_info_rec_size);
+
+    printf("Print Func info \n"); 
+ 	rec_size = info.func_info_rec_size;   
 	func_info = malloc(info.nr_func_info * rec_size);
 
     /* reset info to only retrieve func_info related data */
@@ -84,30 +90,44 @@ static void do_test_file(unsigned int test_num)
 	info.func_info = ptr_to_u64(func_info);
 
     bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
+   	btf = btf__load_from_kernel_by_id(info.btf_id);
 
-	btf = btf__load_from_kernel_by_id(info.btf_id);
-	
-
-	/* check three functions */
 	finfo = func_info;
-	
 	const struct btf_type *t;
 	const char *fname;
         
-
 	t = btf__type_by_id(btf, finfo->type_id);
 	printf("name_off is: %d\n", t->name_off);
  
 	fname = btf__name_by_offset(btf, t->name_off);
-	printf("name is: %s\n", fname);
-		
-	finfo = (void *)finfo + rec_size;
-	
+	printf("Func name is: %s\n\n", fname);
 
+	/* Get lineinfo */
+      printf("Print Line info \n"); 
+	line_rec_size = info.line_info_rec_size;   
+	line_info = malloc(info.nr_line_info * line_rec_size);
+
+	/* reset info to only retrieve line_info related data */
+    memset(&info, 0, sizeof(info));
+	info.nr_line_info = 1;
+	info.line_info_rec_size = line_rec_size;
+	info.line_info = ptr_to_u64(line_info);
+
+    bpf_obj_get_info_by_fd(prog_fd, &info, &info_len);
+    btf = btf__load_from_kernel_by_id(info.btf_id);
+
+    linfo = line_info;
+	const char *lname;
+ 
+	printf("linfo->insn_off: %d\n", linfo->insn_off);
+    printf("linfo->file_name_off: %d\n", linfo->file_name_off);
+	printf("linfo->line_off: %d\n", linfo->line_off);
+	printf("linfo->line_col: %d\n", linfo->line_col);
+	lname = btf__name_by_offset(btf, linfo->file_name_off);
+	printf("file name is: %s\n", lname);
+       
 skip:
 	fprintf(stderr, "OK");
-
-
 	btf__free(btf);
 	free(func_info);
 	bpf_object__close(obj);

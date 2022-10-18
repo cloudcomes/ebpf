@@ -1,3 +1,5 @@
+# Common Makefile parts for BPF-building with libbpf
+
 ifeq ($(V),1)
 	Q =
 	msg =
@@ -6,7 +8,7 @@ else
 	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
 endif
 
-USER_TARGETS := btf_app
+USER_TARGETS := sockex1_user
 
 CC ?= gcc
 
@@ -14,15 +16,11 @@ USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
 LIBBPF_DIR ?= /root/cloud/libbpf/src
+
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
-
 BPF_CFLAGS ?= -I/root/cloud/libbpf/src/
-
-#BPF_CFLAGS += -I/root/cloud/libbpf/include/uapi/
-BPF_CFLAGS += -I/root/cloud/libbpf/include/
-
-
+BPF_CFLAGS += -I/root/cloud/libbpf/include/uapi
 
 LIBS = /root/cloud/libbpf/src/libbpf.a 
 
@@ -36,7 +34,7 @@ clean:
 	#$(MAKE) -C $(LIBBPF_DIR) clean
 	rm -f *.ll
 	rm -f *.o
-	rm -f btf_app
+	rm -f sockex1
 
 llvm-check: $(CLANG) $(LLC)
 	$(call msg,CHECK,$@)
@@ -59,12 +57,12 @@ $(OBJECT_LIBBPF):
 
 $(USER_OBJ): 
 	$(call msg,CC,$@)
-	$(Q)$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes  $(BPF_CFLAGS)  \
+	$(Q)$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-        -c -g -o ./btf_api.o ./btf_api.c
+        -c -o ./sockex1_user.o ./sockex1_user.c
 
 $(USER_TARGETS):
 	$(call msg,CC,$@)
 	$(Q)$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-	-o ./btf_api ./btf_api.o $(LIBS) -lelf -lz
+	-o ./sockex1 ./sockex1_user.o $(LIBS) -lelf -lz

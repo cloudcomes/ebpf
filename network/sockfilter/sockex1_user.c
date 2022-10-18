@@ -1,29 +1,34 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <stdio.h>
 #include <assert.h>
+
 #include <linux/bpf.h>
-#include <bpf/bpf.h>
-#include <bpf/libbpf.h>
+#include <bpf.h>
 #include "sock_example.h"
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "sockex1.skel.h"
 
 int main(int ac, char **argv)
 {
-	struct bpf_object *obj;
 	int map_fd, prog_fd;
-	char filename[256];
 	int i, sock;
 	FILE *f;
 
-	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
+	struct sockex1_kern *skel;
 
-	if (bpf_prog_load(filename, BPF_PROG_TYPE_SOCKET_FILTER,
-			  &obj, &prog_fd))
-		return 1;
+    /* Load and verify BPF application */ 
+    skel = sockex1_kern__open_and_load();
+	if (!skel) {
+	  fprintf(stderr, "Failed to open and load eBPF skeleton\n");
+	  goto cleanup;
+	  return 1;
+	}   
+    
+	prog_fd = bpf_program__fd(skel->progs.bpf_prog1);
 
-	map_fd = bpf_object__find_map_fd_by_name(obj, "my_map");
-
+    map_fd = bpf_map__fd(skel->maps.my_map);
+    
 	sock = open_raw_sock("lo");
 
 	assert(setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &prog_fd,
@@ -34,6 +39,7 @@ int main(int ac, char **argv)
 
 	for (i = 0; i < 5; i++) {
 		long long tcp_cnt, udp_cnt, icmp_cnt;
+		
 		int key;
 
 		key = IPPROTO_TCP;
@@ -49,6 +55,9 @@ int main(int ac, char **argv)
 		       tcp_cnt, udp_cnt, icmp_cnt);
 		sleep(1);
 	}
-
+    cleanup:
+        fprintf(stdout,"5: detaching and unloading eBPF programs......\n"); 
+	    sockex1_kern__destroy(skel);
+        
 	return 0;
 }

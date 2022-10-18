@@ -1,6 +1,6 @@
 # Common Makefile parts for BPF-building with libbpf
 
-LIBBPF_DIR ?= /home/cloudcome/libbpf/src
+LIBBPF_DIR ?= /root/cloud/libbpf/src
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
 all: $(OBJECT_LIBBPF) 

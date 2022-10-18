@@ -56,9 +56,14 @@
 #define BTF_INT_BOOL	(1 << 2)
 
 int main(void){
-	static const char strs[] = "\0int";
+	static const char strs[] = "\0int\0x\0a";
 	int types[] = {
-		/* int */
-		BTF_TYPE_INT_ENC(1, BTF_INT_SIGNED, 0, 32, 4),
+              /* int */
+		BTF_TYPE_INT_ENC(1, BTF_INT_SIGNED, 0, 32, 4),  /* [1] */ 
+		/* FUNC_PROTO */                                /* [2] */
+		BTF_TYPE_ENC(0, BTF_INFO_ENC(BTF_KIND_FUNC_PROTO, 0, 1), 0),
+		BTF_PARAM_ENC(7, 1),
+		/* FUNC x */                                    /* [3] */
+		BTF_TYPE_ENC(5, BTF_INFO_ENC(BTF_KIND_FUNC, 0, 0), 2), 
 	};
 }

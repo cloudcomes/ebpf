@@ -5,10 +5,10 @@
 #include <linux/kernel.h>
 #include <linux/filter.h>
 #include <linux/unistd.h>
-#include <bpf/bpf.h>
+#include <bpf.h>
 #include <sys/resource.h>
-#include <libelf.h>
-#include <gelf.h>
+//#include <libelf.h>
+//#include <gelf.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,15 +17,15 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
-#include <bpf/libbpf.h>
+#include <libbpf.h>
 
 #include <uapi/linux/btf.h>
-#include <btf.h>
+//#include <btf.h>
 
 //#include "bpf_rlimit.h"
 //#include "bpf_util.h"
 #include "test_btf.h"
-#include "test_progs.h"
+//#include "test_progs.h"
 
 
 #define MAX_INSNS	512
@@ -50,8 +50,6 @@ static bool always_log;
 
 static char btf_log_buf[BTF_LOG_BUF_SIZE];
 
-/* defined in test_progs.h */
-struct test_env env = {};
 
 struct prog_test_def {
 	const char *test_name;
@@ -78,15 +76,6 @@ extern void test__skip(void);
 extern void test__fail(void);
 
 
-void test__skip(void)
-{
-	env.test->skip_cnt++;
-}
-
-void test__fail(void)
-{
-	env.test->error_cnt++;
-}
 
 static char btf_log_buf[BTF_LOG_BUF_SIZE];
 
@@ -347,7 +336,7 @@ static int test_btf_id(unsigned int test_num)
 	printf("info->btf: %llu\n", info.btf);
 	printf("info->btf_size: %d\n", info.btf_size);
 	printf("info->id: %d\n", info.id);
-	printf("info->name: %llu\n", info.name);
+	//printf("info->name: %llu\n", info.name);
   
 	btf_fd[1] = bpf_btf_get_fd_by_id(info.id);
 

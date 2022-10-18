@@ -6,25 +6,24 @@ else
 	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
 endif
 
-USER_TARGETS := btf_file
+USER_TARGETS := btf_type
 
 CC ?= gcc
 
 USER_C := ${USER_TARGETS:=.c}
 USER_OBJ := ${USER_C:.c=.o}
 
-LIBBPF_DIR ?= /home/cloudcome/libbpf/src
+LIBBPF_DIR ?= /root/cloud/libbpf/src
 OBJECT_LIBBPF = $(LIBBPF_DIR)/libbpf.a
 
 
-BPF_CFLAGS ?= -I/home/cloudcome/libbpf/src/
+BPF_CFLAGS ?= -I/root/cloud/libbpf/src/
 
-BPF_CFLAGS += -I/home/cloudcome/libbpf/include/uapi/
-BPF_CFLAGS += -I/home/cloudcome/libbpf/include/
+BPF_CFLAGS += -I/root/cloud/libbpf/include/uapi/
+BPF_CFLAGS += -I/root/cloud/libbpf/include/
 
 
-
-LIBS = /home/cloudcome/libbpf/src/libbpf.a 
+LIBS = /root/cloud/libbpf/src/libbpf.a 
 
 all: llvm-check $(USER_OBJ) $(USER_TARGETS)
 
@@ -36,7 +35,7 @@ clean:
 	#$(MAKE) -C $(LIBBPF_DIR) clean
 	rm -f *.ll
 	rm -f *.o
-	rm -f btf_file
+	rm -f btf_type
 
 llvm-check: $(CLANG) $(LLC)
 	$(call msg,CHECK,$@)
@@ -61,10 +60,10 @@ $(USER_OBJ):
 	$(call msg,CC,$@)
 	$(Q)$(CC) -Wall -O2 -Wmissing-prototypes -Wstrict-prototypes  $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-        -c -g -o ./btf_file.o ./btf_file.c
+        -c -g -o ./btf_type.o ./btf_type.c
 
 $(USER_TARGETS):
 	$(call msg,CC,$@)
 	$(Q)$(CC) -Wp,-MD,-Wall -O2 -Wmissing-prototypes -Wstrict-prototypes $(BPF_CFLAGS)  \
         -DHAVE_ATTR_TEST=0 \
-	-o ./btf_file ./btf_file.o $(LIBS) -lelf -lz
+	-o ./btf_type ./btf_type.o $(LIBS) -lelf -lz

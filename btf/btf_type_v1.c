@@ -13,14 +13,10 @@
 
 static int probe_void_btf(void)
 {
-
-	struct bpf_btf_info info;
 	struct btf *btf = NULL;
 	const struct btf_type *t,*tt,*ttt;
-
-	int fd, btf_fd,err;
-	__u32 len = sizeof(info);
-
+	int fd, err;
+	
     /* void x(int a) {} */
     static const char strs[] = "\0int\0x\0a";
 	 
@@ -43,25 +39,13 @@ static int probe_void_btf(void)
 	if (fd < 0)
 	  return 0; /* BTF not supported at all */
     
-	/* Step 2: Obtain information about the eBPF object corresponding to bpf_fd */
-	/* The userspace is expected to allocate buffe to info.info 
-	   and the buffer size is set to info.info_len before calling BPF_OBJ_GET_INFO_BY_FD.
-	*/
-	memset(&info, 0, sizeof(info));
-	err = bpf_obj_get_info_by_fd(fd, &info, &len);
-
-    /* Step 3: bpf syscall command BPF_BTF_GET_FD_BY_ID can retrieve a btf fd. */
-    btf_fd = bpf_btf_get_fd_by_id(info.id);
-	printf("btf_fd: %d\n", btf_fd);
-
-    /* Step 4: constructs struct btf from in-kernel BTF data by FD and 
+    /* Step 2: constructs struct btf from in-kernel BTF data by FD and 
 	 load BTF data by FD
     */
-	btf = btf_get_from_fd(btf_fd, NULL);
+	btf = btf_get_from_fd(fd, NULL);
 
-	/* Step 5: Get pointer to a btf_type */
+	/* Step 3: Get pointer to a btf_type */
 	/* even  we have a pointer to a btf_type,we can get any data we want */
-
 	
 	/* int */
 	printf("print int BTF info\n");
