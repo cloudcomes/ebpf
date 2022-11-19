@@ -1,0 +1,52 @@
+ifeq ($(V),1)
+	Q =
+	msg =
+else
+	Q = @
+	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
+endif
+
+KERN_TARGETS := tc_drop
+
+LLC ?= llc
+CLANG ?= clang
+
+KERN_C = ${KERN_TARGETS:=.c}
+KERN_OBJ = ${KERN_C:.c=.o}
+
+BPF_CFLAGS ?= -I/root/cloud/libbpf/src/
+
+all: llvm-check $(KERN_OBJ) 
+
+.PHONY: clean $(CLANG) $(LLC)
+
+clean:
+	$(call msg,rm,$@)
+	rm -f *.ll
+	rm -f *.o
+	rm -f tcp_drop
+
+llvm-check: $(CLANG) $(LLC)
+	$(call msg,CHECK,$@)
+	@for TOOL in $^ ; do \
+           if [ ! $$(command -v $${TOOL} 2>/dev/null) ]; then \
+              echo "*** ERROR: Cannot find tool $${TOOL}" ;\
+              exit 1; \
+           else true; fi; \
+        done
+
+$(KERN_OBJ): %.o: %.c  $(OBJECT_LIBBPF)
+	$(call msg,CLANG,$@)
+	$(Q)$(CLANG) -S \
+        -target bpf \
+            -D __BPF_TRACING__ \
+            $(BPF_CFLAGS) \
+            -Wall \
+            -Wno-unused-value \
+            -Wno-pointer-sign \
+            -Wno-compare-distinct-pointer-types \
+            -Werror \
+            -D__TARGET_ARCH_x86 \
+            -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	$(call msg,LLC,$@)
+	$(Q)$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}

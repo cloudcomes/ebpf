@@ -26,12 +26,4 @@ $ make -f Makefile.kern
 $ sockex1 
 ```
 
-### Trace output
-```shell
-$ cat /sys/kernel/debug/tracing/trace_pipe
-```
 
-### Check log
-```shell
-$ cat ./log.txt
-```

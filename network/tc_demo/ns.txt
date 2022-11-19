@@ -1,0 +1,40 @@
+ip netns add ns-src-fIJQ5y
+ip netns add ns-dst-R2auyk
+
+ip link add veth_src type veth peer name veth_dst
+ip link set veth_src netns ns-src-fIJQ5y
+ip link set veth_dst netns ns-dst-R2auyk
+
+ip -netns ns-src-fIJQ5y addr add 172.16.1.100/24 dev veth_src
+ip -netns ns-dst-R2auyk addr add 172.16.2.100/24 dev veth_dst
+
+ip -netns ns-src-fIJQ5y link set dev veth_src up
+ip -netns ns-dst-R2auyk link set dev veth_dst up
+
+ip -netns ns-src-fIJQ5y route add 172.16.2.100/32 dev veth_src
+ip -netns ns-dst-R2auyk route add 172.16.1.100/32 dev veth_dst
+
+ip netns exec ns-src-fIJQ5y tc qdisc add dev veth_src root fq
+ip netns exec ns-src-fIJQ5y tc qdisc add dev veth_src clsact
+ip netns exec ns-src-fIJQ5y tc filter add dev veth_src egress bpf da obj tc_drop.o sec tc
+
+ip netns exec ns-dst-R2auyk bash -c 'nc -4 -l -p 1314 -u>/dev/null &'
+sleep 1
+ip netns exec ns-dst-R2auyk cat /sys/class/net/veth_dst/statistics/rx_bytes
+
+ip netns exec ns-src-fIJQ5y bash -c 'timeout 20 dd if=/dev/zero bs=1000 count=1000000 > /dev/udp/172.16.2.100/1314 2>/dev/null'
+ip netns exec ns-dst-R2auyk cat /sys/class/net/veth_dst/statistics/rx_bytes
+ip netns del ns-src-fIJQ5y
+ip netns del ns-dst-R2auyk
+
+TCP
+ip netns exec ns-dst-R2auyk bash -c 'nc -4 -l 172.16.2.100 1314'
+root@cloudcome:~# ip netns exec ns-src-fIJQ5y bash -c 'echo "ttt"|nc -v 172.16.2.100 1314'
+nc: connect to 172.16.2.100 port 1314 (tcp) failed: Connection timed out
+
+udp
+root@cloudcome:~# ip netns exec ns-dst-R2auyk bash -c 'nc -4 -l 172.16.2.100 1314 -u'
+XXXXXttt
+
+root@cloudcome:~# ip netns exec ns-src-fIJQ5y bash -c 'echo "ttt"|nc -vu 172.16.2.100 1314'
+Connection to 172.16.2.100 1314 port [udp/*] succeeded!
