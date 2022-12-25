@@ -1,3 +1,0 @@
-./tracex4
-perf test
-cat /sys/kernel/debug/tracing/trace_pipe

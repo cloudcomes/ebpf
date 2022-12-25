@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
+OUTPUT := .output
+LIBBPF_SRC := $(abspath ../../../libbpf/src)
+LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
+
+BPFTOOL_SRC := $(abspath ../../../bpftool/src)
+BPFTOOL_OUTPUT ?= $(abspath $(OUTPUT)/bpftool)
+BPFTOOL ?= $(BPFTOOL_OUTPUT)/bootstrap/bpftool
+
+
+# Use our own libbpf API headers and Linux UAPI headers distributed with
+# libbpf to avoid dependency on system-wide headers, which could be missing or
+# outdated
+ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
+VMLINUX := ../../../vmlinux/$(ARCH)/vmlinux.h
+
+INCLUDES := -I$(OUTPUT) -I../../../libbpf/include/uapi -I$(dir $(VMLINUX))
+
+
+ifeq ($(V),1)
+	Q =
+	msg =
+else
+	Q = @
+	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
+endif
+
+KERN_TARGETS := kprobe.bpf
+
+
+LLC ?= llc
+CLANG ?= clang
+
+KERN_C = ${KERN_TARGETS:=.c}
+KERN_OBJ = ${KERN_C:.c=.o}
+
+
+
+all: llvm-check  $(OUTPUT) $(LIBBPF_OBJ) $(KERN_OBJ) $(skeletons)
+
+.PHONY: clean $(CLANG) $(LLC)
+
+clean:
+	$(call msg,rm,$@)
+	rm -f *.ll
+	rm -f *.o
+	#rm -f kprobe.bpf
+
+
+$(OUTPUT) $(OUTPUT)/libbpf :
+	$(call msg,MKDIR,$@)
+	$(Q)mkdir -p $@
+
+# Build libbpf
+$(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPUT)/libbpf
+	$(call msg,LIB,$@)
+	$(Q)$(MAKE) -C $(LIBBPF_SRC) BUILD_STATIC_ONLY=1		      \
+		    OBJDIR=$(dir $@)/libbpf DESTDIR=$(dir $@)		      \
+		    INCLUDEDIR= LIBDIR= UAPIDIR=			      \
+		    install   
+
+# Build bpftool
+$(BPFTOOL): | $(BPFTOOL_OUTPUT)
+	$(call msg,BPFTOOL,$@)
+	$(Q)$(MAKE) ARCH= CROSS_COMPILE= OUTPUT=$(BPFTOOL_OUTPUT)/ -C $(BPFTOOL_SRC) bootstrap
+
+
+llvm-check: $(CLANG) $(LLC)
+	$(call msg,CHECK,$@)
+	@for TOOL in $^ ; do \
+           if [ ! $$(command -v $${TOOL} 2>/dev/null) ]; then \
+              echo "*** ERROR: Cannot find tool $${TOOL}" ;\
+              exit 1; \
+           else true; fi; \
+        done
+
+$(KERN_OBJ): %.o: %.c  $(OBJECT_LIBBPF)
+	$(call msg,CLANG,$@)
+	$(Q)$(CLANG) -S \
+        -target bpf \
+            -D __BPF_TRACING__ \
+            $(INCLUDES) \
+            -Wall \
+            -Wno-unused-value \
+            -Wno-pointer-sign \
+            -Wno-compare-distinct-pointer-types \
+            -Werror \
+            -D__TARGET_ARCH_x86 \
+            -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	$(call msg,LLC,$@)
+	$(Q)$(LLC) -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+
+# Generate BPF skeletons
+$(skeletons):$(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
+	$(call msg,GEN-SKEL,$@)
+	$(Q)bpftool gen skeleton $< > $@
