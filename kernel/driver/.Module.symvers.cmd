@@ -1,0 +1,1 @@
+cmd_/root/cloud/ebpf/kernel/driver/Module.symvers := sed 's/\.ko$$/\.o/' /root/cloud/ebpf/kernel/driver/modules.order | scripts/mod/modpost -m -a  -o /root/cloud/ebpf/kernel/driver/Module.symvers -e -i Module.symvers   -T -

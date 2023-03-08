@@ -1,0 +1,1 @@
+cmd_/root/cloud/ebpf/kernel/driver/test_bpf.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /root/cloud/ebpf/kernel/driver/test_bpf.ko /root/cloud/ebpf/kernel/driver/test_bpf.o /root/cloud/ebpf/kernel/driver/test_bpf.mod.o;  true
