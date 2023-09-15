@@ -1,6 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0
-
-#define KBUILD_MODNAME "xdp_dummy"
 #include "vmlinux.h"
 #include <bpf_helpers.h>
 

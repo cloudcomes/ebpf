@@ -10,10 +10,8 @@
 #     | xdp forwarding |
 #     ------------------
 
-#readonly NS1="ns1-$(mktemp -u XXXXXX)"
-#readonly NS2="ns2-$(mktemp -u XXXXXX)"
-readonly NS1="ns1-111"
-readonly NS2="ns2-222"
+readonly NS1="ns1-$(mktemp -u XXXXXX)"
+readonly NS2="ns2-$(mktemp -u XXXXXX)"
 
 ret=0
 
@@ -65,8 +63,8 @@ test_xdp_redirect()
 	ip link set dev veth1 $xdpmode obj xdp_redirect.o sec redirect_to_222 &> /dev/null
 	ip link set dev veth2 $xdpmode obj xdp_redirect.o sec redirect_to_111 &> /dev/null
 
-	if ip netns exec ${NS1} ping -c 1 10.1.1.22 &> /dev/null &&
-	   ip netns exec ${NS2} ping -c 1 10.1.1.11 &> /dev/null; then
+	if ip netns exec ${NS1} ping -c 1 10.1.1.22 &&
+	   ip netns exec ${NS2} ping -c 1 10.1.1.11 ; then
 		echo "selftests: test_xdp_redirect $xdpmode [PASS]";
 	else
 		ret=1

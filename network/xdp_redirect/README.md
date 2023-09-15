@@ -1,23 +1,21 @@
-# eBPF xdp_redirect samples
+## xdp_redirect sample
 
-This repo contains samples for eBPF sockops programs.
-Copy from kernel example: linux/tools/testing/selftests/bpf/progs/test_xdp_redirect.c
-linux/tools/testing/selftests/bpf/progs/xdp_dummy.c
+Copy from kernel example: 
+ &emsp;linux/tools/testing/selftests/bpf/progs/test_xdp_redirect.c
+ &emsp;linux/tools/testing/selftests/bpf/progs/xdp_dummy.c
 
+### Test the the eBPF programs
 
-## Running the sample
-
-### Build and load the eBPF programs
+#### &emsp; Build the eBPF programs
 
 ```shell
 $ make -f Makefile.dummy
-$ make -f Makefile.kern
+$ make -f Makefile
 ```
 
-### Test 
+#### &emsp; Load & Run the eBPF programs
 
 ```shell
-$bash ./test.sh
-$bash ./t.sh
+$ bash ./test.sh
 ```
 

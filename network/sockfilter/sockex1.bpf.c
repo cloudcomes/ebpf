@@ -1,5 +1,5 @@
 #include "vmlinux.h"
-#include <bpf_helpers.h>
+#include <bpf/bpf_helpers.h>
 
 unsigned long long load_byte(void *skb,
                              unsigned long long off) asm("llvm.bpf.load.byte");

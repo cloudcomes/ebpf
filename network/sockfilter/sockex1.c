@@ -2,11 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <linux/bpf.h>
-#include <bpf.h>
+#include <bpf/bpf.h>
 #include "sock_example.h"
-#include <unistd.h>
-#include <arpa/inet.h>
 #include "sockex1.skel.h"
 
 int main(int ac, char **argv)
@@ -15,10 +12,10 @@ int main(int ac, char **argv)
 	int i, sock;
 	FILE *f;
 
-	struct sockex1_kern *skel;
+	struct sockex1_bpf *skel;
 
     /* Load and verify BPF application */ 
-    skel = sockex1_kern__open_and_load();
+    skel = sockex1_bpf__open_and_load();
 	if (!skel) {
 	  fprintf(stderr, "Failed to open and load eBPF skeleton\n");
 	  goto cleanup;
@@ -56,8 +53,8 @@ int main(int ac, char **argv)
 		sleep(1);
 	}
     cleanup:
-        fprintf(stdout,"5: detaching and unloading eBPF programs......\n"); 
-	    sockex1_kern__destroy(skel);
+        fprintf(stdout,"1: detaching and unloading eBPF programs......\n"); 
+	    sockex1_bpf__destroy(skel);
         
 	return 0;
 }

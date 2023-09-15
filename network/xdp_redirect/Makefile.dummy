@@ -24,7 +24,6 @@ clean:
 	$(call msg,rm,$@)
 	rm -f *.ll
 	rm -f *.o
-	rm -f xdp1
 
 llvm-check: $(CLANG) $(LLC)
 	$(call msg,CHECK,$@)

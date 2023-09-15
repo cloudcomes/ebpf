@@ -6,7 +6,7 @@ else
 	msg = @printf '  %-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
 endif
 
-KERN_TARGETS := sockex1_kern
+KERN_TARGETS := xdp_redirect
 
 LLC ?= llc
 CLANG ?= clang
@@ -24,7 +24,6 @@ clean:
 	$(call msg,rm,$@)
 	rm -f *.ll
 	rm -f *.o
-	#rm -f sockex1
 
 llvm-check: $(CLANG) $(LLC)
 	$(call msg,CHECK,$@)
