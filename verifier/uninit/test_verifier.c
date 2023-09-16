@@ -32,9 +32,11 @@ static int test_verifier(void)
     static char bpf_log_buf[65536];
     static const char bpf_license[] = "GPL";
     int bpf_fd;
-
+    
+    //Program that reads uninitialized register
     const struct bpf_insn prog[] = {
-	   BPF_MOV64_IMM(BPF_REG_0, 0),
+	   	BPF_MOV64_REG(BPF_REG_0, BPF_REG_2),
+	    BPF_EXIT_INSN(),
 	   };
     union bpf_attr attr;
 
