@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
 // Copyright (c) 2018 Netronome Systems, Inc.
 
+
+//#include "vmlinux.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -16,9 +18,19 @@
 #include "bpf_helpers.h"
 #include "jhash.h"
 
+
 #define MAX_SERVERS 512
 /* 0x3FFF mask to check for fragment offset field */
 #define IP_FRAGMENTED 65343
+
+#define ETH_ALEN 6
+#define ETH_P_802_3_MIN 0x0600
+#define ETH_P_8021Q 0x8100
+#define ETH_P_8021AD 0x88A8
+#define ETH_P_IP 0x0800
+#define ETH_P_IPV6 0x86DD
+#define ETH_P_ARP 0x0806
+#define IPPROTO_ICMPV6 58
 
 struct pkt_meta {
 	__be32 src;
@@ -37,12 +49,23 @@ struct dest_info {
 	__u8 dmac[6];
 };
 
+
 struct bpf_map_def SEC("maps") servers = {
 	.type = BPF_MAP_TYPE_HASH,
 	.key_size = sizeof(__u32),
 	.value_size = sizeof(struct dest_info),
 	.max_entries = MAX_SERVERS,
 };
+
+
+/*
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, u32);
+	__type(value, struct dest_info);
+	__uint(max_entries, MAX_SERVERS);
+} servers SEC(".maps");
+*/
 
 static __always_inline struct dest_info *hash_get_dest(struct pkt_meta *pkt)
 {
